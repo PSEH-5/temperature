@@ -8,9 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class CommonMethods {
 
@@ -25,7 +24,7 @@ public class CommonMethods {
         return headers;
     }
 
-    public Result predictWheather(TemperatureObject temperatureObject , String city){
+    public Result predictWheather(TemperatureObject temperatureObject , String city) throws Exception {
 
         Result result = new Result();
         List<DistrictTemperature> districtTemperatures = temperatureObject.getList();
@@ -44,20 +43,31 @@ public class CommonMethods {
         return result;
     }
 
-    public double getAvgTemperature(List<DistrictTemperature> districtTemperatures){
+    public double getAvgTemperature(List<DistrictTemperature> districtTemperatures) throws Exception {
         logger.info("Start  : getAvgTemperature ");
         Double avgTemp = 0.0;
         Iterator<DistrictTemperature> districtTemperaturesList = districtTemperatures.iterator();
+
+        Calendar cal = Calendar.getInstance();
+        //cal.setTime(dateInstance);
+        cal.add(Calendar.DATE, +3);
+        Date dateafter3days = cal.getTime();
+        logger.info("date == {}", dateafter3days);
+        Date todaysDate = new Date();
+
         while(districtTemperaturesList.hasNext()){
             DistrictTemperature districtTemperature = districtTemperaturesList.next();
-            Double max_temp = districtTemperature.getMain().getTemp_max();
-            Double min_temp = districtTemperature.getMain().getTemp_min();
-            Double tempAvg = (max_temp + min_temp) / 2;
-            if (avgTemp==0.0){
-                avgTemp = tempAvg ;
-                continue;
+            Date date = getDate(districtTemperature.getDt_txt());
+            if(date.before(dateafter3days)){
+                Double max_temp = districtTemperature.getMain().getTemp_max();
+                Double min_temp = districtTemperature.getMain().getTemp_min();
+                Double tempAvg = (max_temp + min_temp) / 2;
+                if (avgTemp==0.0){
+                    avgTemp = tempAvg ;
+                    continue;
+                }
+                avgTemp = (avgTemp + tempAvg)/2;
             }
-            avgTemp = (avgTemp + tempAvg)/2;
         }
         logger.info("End  : getAvgTemperature ");
         return avgTemp;
@@ -70,5 +80,12 @@ public class CommonMethods {
         String replaceValue = "q="+city;
         url = url.replace("q=City",replaceValue);
         return  url;
+    }
+
+    public Date getDate(String stringDate) throws Exception{
+        SimpleDateFormat simpleDateFormat= new SimpleDateFormat("yyy-MM-dd HH:mm:ss");
+        Date date = simpleDateFormat.parse(stringDate);
+        logger.info("date == {}", date);
+        return date;
     }
 }
